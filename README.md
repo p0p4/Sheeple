@@ -2,4 +2,4 @@
 
 A metropolia university project
 
-https://github.com/p0p4/Sheeple/assets/95407806/fe45e003-07d8-4041-a7a9-0168fc767fbe
+https://github.com/p0p4/Sheeple/assets/95407806/47445e59-8c4d-41f5-a2a7-00de8af25f56
