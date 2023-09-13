@@ -1,0 +1,138 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class SheepController : MonoBehaviour
+{
+    [HideInInspector] public float speed = 0f;
+    [HideInInspector] public float turnSpeed = 0f;
+    [HideInInspector] public float neighborRadius = 0f;
+    [HideInInspector] public float avoidanceRadius = 0f;
+    [HideInInspector] public float fieldAreaRadius = 0;
+    [HideInInspector] public float cursorAvoidanceRadius = 0;
+    [HideInInspector] public float viewAngle = 0f;
+    [HideInInspector] public float avoidanceForce = 0f;
+    [HideInInspector] public float alignmentForce = 0f;
+    [HideInInspector] public float cohesionForce = 0f;
+    [HideInInspector] public bool avoidance = false;
+    [HideInInspector] public bool alignment = false;
+    [HideInInspector] public bool cohesion = false;
+    private bool goal = false;
+
+    public void Movement(List<SheepController> sheepList)
+    {
+        Vector3 direction = Vector3.zero;
+
+        Vector3 avoidanceDirection = Vector3.zero;
+        int avoidanceCount = 0;
+        Vector3 alignmentDirection = Vector3.zero;
+        int alignmentCount = 0;
+        Vector3 cohesionDirection = Vector3.zero;
+        int cohesionCount = 0;
+
+        foreach (SheepController sheep in sheepList)
+        {
+            if (sheep == this)
+                continue;
+
+            float distance = Vector3.Distance(transform.position, sheep.transform.position);
+
+            if (distance < avoidanceRadius)
+            {
+                avoidanceDirection += (transform.position - sheep.transform.position);
+                avoidanceCount++;
+            }
+
+            if (distance < neighborRadius && Vector3.Angle(transform.forward, sheep.transform.position - transform.position) < viewAngle)
+            {
+                alignmentDirection += sheep.transform.forward;
+                alignmentCount++;
+
+                cohesionDirection += sheep.transform.position - transform.position;
+                cohesionCount++;
+            }
+        }
+
+        if (avoidanceCount > 0 && avoidance)
+        {
+            avoidanceDirection /= avoidanceCount;
+            avoidanceDirection = avoidanceDirection.normalized;
+            avoidanceDirection *= avoidanceForce;
+            direction += avoidanceDirection;
+        }
+
+        if (alignmentCount > 0 && alignment)
+        {
+            alignmentDirection /= alignmentCount;
+            alignmentDirection = alignmentDirection.normalized;
+            alignmentDirection *= alignmentForce;
+            direction += alignmentDirection;
+        }
+
+        if (cohesionCount > 0 && cohesion)
+        {
+            cohesionDirection /= cohesionCount;
+            cohesionDirection = cohesionDirection.normalized;
+            cohesionDirection *= cohesionForce;
+            direction += cohesionDirection;
+        }
+
+        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+        Plane plane = new Plane(Vector3.up, new Vector3(0, 0, 0));
+        Vector3 hitPoint = Vector3.one * float.MaxValue;
+        if (plane.Raycast(ray, out float hitDistance))
+        {
+            hitPoint = ray.GetPoint(hitDistance);
+        }
+
+        if (Vector3.Distance(transform.position, hitPoint) < cursorAvoidanceRadius)
+        {
+            Vector3 cursorDirection = transform.position - hitPoint;
+            cursorDirection = cursorDirection.normalized;
+            cursorDirection *= 4f;
+            direction += cursorDirection;
+        }
+
+        float obstacleRadius = 15f;
+        RaycastHit castInfo;
+        if (Physics.Raycast(transform.position, transform.forward, out castInfo, obstacleRadius, LayerMask.GetMask("Obstacles")))
+            direction = ((castInfo.point + castInfo.normal) - transform.position).normalized;
+
+        if (Vector3.Distance(transform.position, Vector3.zero) > fieldAreaRadius)
+        {
+            Vector3 centerDirection = Vector3.zero - transform.position;
+            centerDirection = centerDirection.normalized;
+            centerDirection *= 10f;
+            direction += centerDirection;
+        }
+
+        if (goal)
+        {
+            Vector3 goalDirection = new Vector3(0, 0, -50) - transform.position;
+            goalDirection = goalDirection.normalized;
+            direction = goalDirection;
+            if (Vector3.Distance(transform.position, new Vector3(0, 0, -50)) < 1f)
+            {
+                HerdController.instance.sheepList.Remove(this);
+                Destroy(gameObject);
+            }
+        }
+
+        if (direction != Vector3.zero)
+        {
+            direction.y = 0f;
+            transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(direction), turnSpeed * Time.deltaTime);
+        }
+
+        transform.position += transform.TransformDirection(Vector3.forward) * speed * Time.deltaTime;
+    }
+
+    private void OnTriggerEnter(Collider other)
+    {
+        if (other.gameObject.CompareTag("Goal"))
+        {
+            goal = true;
+            GameManager.instance.sheep++;
+        }
+    }
+}
