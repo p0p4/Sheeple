@@ -1,67 +1,60 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
 
 public class GameManager : MonoBehaviour
 {
+    [Header("References")]
     [SerializeField] private TextMeshProUGUI timerText;
     [SerializeField] private TextMeshProUGUI sheepText;
-    [SerializeField] private float time = 60f;
-    private float timeBackup = 0f;
-    [HideInInspector] public float sheep = 0f;
-    public bool start = false;
-
-    public GameObject button;
     [SerializeField] private GameObject cursorRadius;
+    [SerializeField] private GameObject startButton;
+    [SerializeField] private GameObject quitButton;
 
+    HerdController herdController;
+
+    [Header("Settings")]
+    [SerializeField] private float time = 0f;
+    [HideInInspector] public bool start = false;
+    [HideInInspector] public int sheep = 0;
+    private float timeBackup = 0f;
+
+    // singleton
     public static GameManager instance;
     private void Awake()
     {
         instance = this;
     }
 
-    void Start()
+    private void Start()
     {
+        herdController = HerdController.instance;
+
+        Time.timeScale = 0;
         timeBackup = time;
-        start = false;
-        button.SetActive(true);
-        button.GetComponentInChildren<TextMeshProUGUI>().text = "Start";
-        int minutes = Mathf.FloorToInt(time / 60);
-        int seconds = Mathf.FloorToInt(time % 60);
-        timerText.text = string.Format("{0}:{1:00}", minutes, seconds);
+        startButton.GetComponentInChildren<TextMeshProUGUI>().text = "Start";
+        startButton.SetActive(true);
 
-        sheepText.text = string.Format("{0:0}/{1:0}", sheep, HerdController.instance.sheepCount);
+        Init();
     }
 
-    void Init()
+    private void Init()
     {
-        button.SetActive(true);
-        int minutes = Mathf.FloorToInt(time / 60);
-        int seconds = Mathf.FloorToInt(time % 60);
-        timerText.text = string.Format("{0}:{1:00}", minutes, seconds);
-
-        sheepText.text = string.Format("{0:0}/{1:0}", sheep, HerdController.instance.sheepCount);
+        timerText.text = TimeFormat(time);
+        sheepText.text = string.Format("{0:0}/{1:0}", sheep, herdController.sheepCount);
     }
 
-    void Update()
+    private void Update()
     {
-        if (!start)
-            return;
-
         time -= Time.deltaTime;
-        int minutes = Mathf.FloorToInt(time / 60);
-        int seconds = Mathf.FloorToInt(time % 60);
-        timerText.text = string.Format("{0}:{1:00}", minutes, seconds);
-
-        sheepText.text = string.Format("{0:0}/{1:0}", sheep, HerdController.instance.sheepCount);
+        timerText.text = TimeFormat(time);
+        sheepText.text = string.Format("{0:0}/{1:0}", sheep, herdController.sheepCount);
 
         if (time <= 0)
         {
             Time.timeScale = 0;
             timerText.text = "00:00";
-            button.SetActive(true);
-            button.GetComponentInChildren<TextMeshProUGUI>().text = "Restart";
+            startButton.GetComponentInChildren<TextMeshProUGUI>().text = "Restart";
+            startButton.SetActive(true);
         }
 
         Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
@@ -71,17 +64,29 @@ public class GameManager : MonoBehaviour
         {
             Vector3 point = ray.GetPoint(distance);
             cursorRadius.transform.position = point;
+            cursorRadius.transform.localScale = new Vector3(1, 0.001f, 1) * 2 * herdController.cursorAvoidanceRadius;
         }
+    }
+
+    private string TimeFormat(float time)
+    {
+        int minutes = Mathf.FloorToInt(time / 60);
+        int seconds = Mathf.FloorToInt(time % 60);
+        return string.Format("{0:00}:{1:00}", minutes, seconds);
     }
 
     public void StartGame()
     {
         Time.timeScale = 1;
         Init();
-        HerdController.instance.Init();
-        button.SetActive(false);
-        start = true;
+        herdController.Init();
+        startButton.SetActive(false);
         time = timeBackup;
-        sheep = 0f;
+        sheep = 0;
+    }
+
+    public void QuitGame()
+    {
+        Application.Quit();
     }
 }
