@@ -153,6 +153,7 @@ public class SheepController : MonoBehaviour
         {
             goal = true;
             gameManager.sheep++;
+            this.gameObject.GetComponent<CapsuleCollider>().enabled = false;
         }
     }
 }

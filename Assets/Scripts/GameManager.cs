@@ -39,7 +39,7 @@ public class GameManager : MonoBehaviour
 
     private void Init()
     {
-        timerText.text = TimeFormat(time);
+        timerText.text = timerText.text = "00:00";
         sheepText.text = string.Format("{0:0}/{1:0}", sheep, herdController.sheepCount);
     }
 
@@ -49,10 +49,10 @@ public class GameManager : MonoBehaviour
         timerText.text = TimeFormat(time);
         sheepText.text = string.Format("{0:0}/{1:0}", sheep, herdController.sheepCount);
 
-        if (time <= 0)
+        if (time <= 0 || sheep == herdController.sheepCount)
         {
             Time.timeScale = 0;
-            timerText.text = "00:00";
+            if (time <= 0) timerText.text = "00:00";
             startButton.GetComponentInChildren<TextMeshProUGUI>().text = "Restart";
             startButton.SetActive(true);
         }
